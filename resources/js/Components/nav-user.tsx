@@ -7,7 +7,10 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
+  User as UserIcon,
 } from "lucide-react"
+import { Link, router } from "@inertiajs/react"
+import { useTranslation } from "@/lib/i18n"
 
 import {
   Avatar,
@@ -36,10 +39,15 @@ export function NavUser({
   user: {
     name: string
     email: string
-    avatar: string
+    avatar?: string
   }
 }) {
   const { isMobile } = useSidebar()
+  const { t } = useTranslation()
+
+  const handleLogout = () => {
+    router.post(route('logout'))
+  }
 
   return (
     <SidebarMenu>
@@ -88,23 +96,25 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
+              <DropdownMenuItem asChild>
+                <Link href={route('profile.edit')} className="flex w-full items-center">
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  {t('Profile')}
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <CreditCard />
-                Billing
+                <CreditCard className="mr-2 h-4 w-4" />
+                {t('Billing')}
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Bell />
-                Notifications
+                <Bell className="mr-2 h-4 w-4" />
+                {t('Notifications')}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
+              <LogOut className="mr-2 h-4 w-4" />
+              {t('Log Out')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
