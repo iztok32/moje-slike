@@ -9,6 +9,7 @@ use App\Models\Module;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class RolesPermissionsController extends Controller
 {
@@ -17,18 +18,44 @@ class RolesPermissionsController extends Controller
 
     public function index(Request $request)
     {
-        // Get all roles
-        $roles = Role::orderBy('name')->get();
+        $currentUser = request()->user();
+
+        // Check if current user is superadmin
+        $isSuperAdmin = $currentUser->roles->first()?->isSuperAdmin() ?? false;
+
+        // Get visible roles for current user
+        $visibleRoles = collect();
+        foreach ($currentUser->roles as $userRole) {
+            $visibleRoles = $visibleRoles->merge(Role::getVisibleRolesForRole($userRole->id));
+        }
+        $visibleRoles = $visibleRoles->unique('id');
+
+        // Get role IDs and fetch with proper ordering
+        $roleIds = $visibleRoles->pluck('id');
+        $roles = Role::whereIn('id', $roleIds)->orderBy('name')->get();
 
         // Get selected role (first role by default)
         $selectedRoleId = $request->get('role_id', $roles->first()?->id);
         $selectedRole = Role::find($selectedRoleId);
 
-        // Get all modules
-        $allModules = Module::orderBy('name')->get();
+        // Check if user can edit selected role (cannot edit own role unless superadmin)
+        $canEditRole = $isSuperAdmin || !$currentUser->roles->contains('id', $selectedRoleId);
 
-        // Get all permissions
-        $permissions = Permission::orderBy('module')->orderBy('slug')->get();
+        // Get user's permissions (for filtering what they can assign)
+        $userPermissionIds = collect();
+        if (!$isSuperAdmin) {
+            foreach ($currentUser->roles as $userRole) {
+                $userPermissionIds = $userPermissionIds->merge($userRole->permissions()->pluck('permissions.id'));
+            }
+            $userPermissionIds = $userPermissionIds->unique();
+        }
+
+        // Get all permissions (filtered by user's permissions if not superadmin)
+        if ($isSuperAdmin) {
+            $permissions = Permission::orderBy('module')->orderBy('slug')->get();
+        } else {
+            $permissions = Permission::whereIn('id', $userPermissionIds)->orderBy('module')->orderBy('slug')->get();
+        }
 
         // Group permissions by module
         $permissionsGrouped = $permissions->groupBy('module');
@@ -38,8 +65,30 @@ class RolesPermissionsController extends Controller
             ? $selectedRole->permissions()->pluck('permissions.id')->toArray()
             : [];
 
-        // Build grouped permissions array
-        $groupedPermissions = $allModules->map(function ($module) use ($permissionsGrouped, $rolePermissions) {
+        // Get only modules that the current user has at least one permission for
+        // (superadmin sees all modules)
+        if ($isSuperAdmin) {
+            $modulesWithPermissions = Module::orderBy('name')->get();
+        } else {
+            // Get unique module names from current user's permissions
+            $userModules = $permissions->pluck('module')->unique();
+            $modulesWithPermissions = Module::whereIn('name', $userModules)
+                ->orderBy('name')
+                ->get();
+        }
+
+        // Get navigation items URLs to determine which modules are in sidebar
+        $navigationUrls = DB::table('navigation_items')
+            ->whereNotNull('url')
+            ->pluck('url')
+            ->map(function ($url) {
+                // Remove leading slash if present
+                return ltrim($url, '/');
+            })
+            ->toArray();
+
+        // Build grouped permissions array - only for modules the user has access to
+        $buildPermissionsArray = function ($module) use ($permissionsGrouped, $rolePermissions) {
             $modulePermissions = $permissionsGrouped->get($module->name, collect());
 
             $standard = $modulePermissions->filter(function ($permission) {
@@ -79,13 +128,33 @@ class RolesPermissionsController extends Controller
                 'assigned_count' => $standard->where('is_assigned', true)->count() + $custom->where('is_assigned', true)->count(),
                 'total_count' => $standard->count() + $custom->count(),
             ];
-        })->values();
+        };
+
+        // Separate modules into sidebar and non-sidebar
+        $sidebarModules = collect();
+        $nonSidebarModules = collect();
+
+        foreach ($modulesWithPermissions as $module) {
+            $webRoot = ltrim($module->web_root, '/');
+            if (in_array($webRoot, $navigationUrls)) {
+                $sidebarModules->push($module);
+            } else {
+                $nonSidebarModules->push($module);
+            }
+        }
+
+        // Build grouped permissions for both categories
+        $sidebarPermissions = $sidebarModules->map($buildPermissionsArray)->values();
+        $nonSidebarPermissions = $nonSidebarModules->map($buildPermissionsArray)->values();
 
         return Inertia::render('Core/RolesPermissions/Index', [
             'roles' => $roles,
             'selectedRole' => $selectedRole,
-            'groupedPermissions' => $groupedPermissions,
+            'sidebarPermissions' => $sidebarPermissions,
+            'nonSidebarPermissions' => $nonSidebarPermissions,
             'standardPermissions' => self::STANDARD_PERMISSIONS,
+            'canEditRole' => $canEditRole,
+            'isSuperAdmin' => $isSuperAdmin,
         ]);
     }
 
@@ -96,8 +165,32 @@ class RolesPermissionsController extends Controller
             'permission_id' => 'required|exists:permissions,id',
         ]);
 
+        $currentUser = $request->user();
         $role = Role::findOrFail($validated['role_id']);
         $permissionId = $validated['permission_id'];
+
+        // Check if current user is superadmin
+        $isSuperAdmin = $currentUser->roles->first()?->isSuperAdmin() ?? false;
+
+        // Prevent editing own role unless superadmin
+        if (!$isSuperAdmin && $currentUser->roles->contains('id', $validated['role_id'])) {
+            return redirect()->back()->withErrors(['error' => 'You cannot edit your own role permissions']);
+        }
+
+        // Check if user has this permission (unless superadmin)
+        if (!$isSuperAdmin) {
+            $hasPermission = false;
+            foreach ($currentUser->roles as $userRole) {
+                if ($userRole->permissions()->where('permissions.id', $permissionId)->exists()) {
+                    $hasPermission = true;
+                    break;
+                }
+            }
+
+            if (!$hasPermission) {
+                return redirect()->back()->withErrors(['error' => 'You cannot assign a permission you do not have']);
+            }
+        }
 
         // Check if permission is already assigned
         if ($role->permissions()->where('permission_id', $permissionId)->exists()) {
