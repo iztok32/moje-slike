@@ -16,6 +16,7 @@ export interface User {
     avatar?: string;
     permissions?: string[];
     config?: UserConfig;
+    unread_notifications_count?: number;
 }
 
 export interface NavigationItem {
