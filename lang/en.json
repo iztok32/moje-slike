@@ -420,5 +420,9 @@
     "Archived": "Archived",
     "Author": "Author",
     "Access": "Access",
-    "Saving...": "Saving..."
+    "Saving...": "Saving...",
+    "Select date": "Select date",
+    "All statuses": "All statuses",
+    "Table view": "Table view",
+    "Card view": "Card view"
 }

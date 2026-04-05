@@ -417,5 +417,9 @@
     "Archived": "Arhivirano",
     "Author": "Autor",
     "Access": "Pristup",
-    "Saving...": "Spremanje..."
+    "Saving...": "Spremanje...",
+    "Select date": "Odaberi datum",
+    "All statuses": "Svi statusi",
+    "Table view": "Tablični prikaz",
+    "Card view": "Kartični prikaz"
 }

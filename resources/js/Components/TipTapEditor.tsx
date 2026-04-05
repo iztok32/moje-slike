@@ -12,7 +12,6 @@ import {
     Undo, Redo, Image as ImageIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/Components/ui/button'
 
 interface TipTapEditorProps {
     value: string
@@ -62,9 +61,10 @@ function EditorToolbar({ editor, onImageUpload }: { editor: Editor; onImageUploa
 
     const handleImageClick = () => {
         if (onImageUpload) {
+            // Existing article — upload file to server
             const input = document.createElement('input')
             input.type = 'file'
-            input.accept = 'image/*'
+            input.accept = 'image/jpeg,image/png,image/webp,image/gif'
             input.onchange = async (e) => {
                 const file = (e.target as HTMLInputElement).files?.[0]
                 if (!file) return
@@ -73,8 +73,9 @@ function EditorToolbar({ editor, onImageUpload }: { editor: Editor; onImageUploa
             }
             input.click()
         } else {
-            const url = window.prompt('Image URL')
-            if (url) editor.chain().focus().setImage({ src: url }).run()
+            // New article — no ID yet, offer URL input instead
+            const url = window.prompt('Vnesite URL slike\n(Nalaganje slik je možno po shranitvi članka)')
+            if (url?.trim()) editor.chain().focus().setImage({ src: url.trim() }).run()
         }
     }
 
@@ -180,7 +181,7 @@ export function TipTapEditor({ value, onChange, placeholder, className, onImageU
             <EditorToolbar editor={editor} onImageUpload={onImageUpload} />
             <EditorContent
                 editor={editor}
-                className="prose prose-sm dark:prose-invert max-w-none min-h-[300px] p-3 focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[280px]"
+                className="min-h-[300px] p-3 [&_.ProseMirror]:min-h-[280px]"
             />
         </div>
     )

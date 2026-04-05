@@ -417,5 +417,9 @@
     "Archived": "Archiviato",
     "Author": "Autore",
     "Access": "Accesso",
-    "Saving...": "Salvataggio..."
+    "Saving...": "Salvataggio...",
+    "Select date": "Seleziona data",
+    "All statuses": "Tutti gli stati",
+    "Table view": "Vista tabella",
+    "Card view": "Vista schede"
 }

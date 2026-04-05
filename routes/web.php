@@ -91,11 +91,11 @@ Route::middleware('auth')->group(function () {
     });
     Route::middleware('permission:articles.create')->group(function () {
         Route::post('articles', [\App\Http\Controllers\Core\ArticlesController::class, 'store'])->name('articles.store');
-        Route::post('articles/{article}/media', [\App\Http\Controllers\Core\ArticlesController::class, 'uploadMedia'])->name('articles.media.upload');
     });
     Route::middleware('permission:articles.edit')->group(function () {
         Route::put('articles/{article}', [\App\Http\Controllers\Core\ArticlesController::class, 'update'])->name('articles.update');
         Route::patch('articles/{article}', [\App\Http\Controllers\Core\ArticlesController::class, 'update']);
+        Route::post('articles/{article}/media', [\App\Http\Controllers\Core\ArticlesController::class, 'uploadMedia'])->name('articles.media.upload');
         Route::delete('articles/{article}/media/{mediaId}', [\App\Http\Controllers\Core\ArticlesController::class, 'deleteMedia'])->name('articles.media.delete');
     });
     Route::middleware('permission:articles.delete')->group(function () {

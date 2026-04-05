@@ -135,12 +135,13 @@ class ArticlesController extends Controller
                 'id'   => $article->author?->id,
                 'name' => $article->author?->name,
             ],
-            'featured_image' => $article->getFirstMediaUrl('featured_image'),
-            'featured_image_thumb' => $article->getFirstMediaUrl('featured_image', 'thumb'),
+            'featured_image'       => $article->getFirstMediaUrl('featured_image'),
+            'featured_image_thumb' => $article->getFirstMediaUrl('featured_image', 'thumb')
+                ?: $article->getFirstMediaUrl('featured_image'),
             'gallery'        => $article->getMedia('gallery')->map(fn ($m) => [
                 'id'    => $m->id,
                 'url'   => $m->getUrl(),
-                'thumb' => $m->getUrl('thumb'),
+                'thumb' => $m->getUrl('thumb') ?: $m->getUrl(),
                 'name'  => $m->file_name,
             ]),
         ];
