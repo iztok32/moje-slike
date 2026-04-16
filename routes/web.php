@@ -102,6 +102,23 @@ Route::middleware('auth')->group(function () {
         Route::delete('articles/{article}', [\App\Http\Controllers\Core\ArticlesController::class, 'destroy'])->name('articles.destroy');
     });
 
+    // ── Art: MyGallery ──
+    Route::middleware('permission:my-gallery.view')->group(function () {
+        Route::get('my-gallery', [\App\Http\Controllers\Art\MyGalleryController::class, 'index'])->name('my-gallery.index');
+    });
+    Route::middleware('permission:my-gallery.create')->group(function () {
+        Route::post('my-gallery', [\App\Http\Controllers\Art\MyGalleryController::class, 'store'])->name('my-gallery.store');
+    });
+    Route::middleware('permission:my-gallery.edit')->group(function () {
+        Route::put('my-gallery/{myGallery}', [\App\Http\Controllers\Art\MyGalleryController::class, 'update'])->name('my-gallery.update');
+        Route::patch('my-gallery/{myGallery}', [\App\Http\Controllers\Art\MyGalleryController::class, 'update']);
+        Route::post('my-gallery/{myGallery}/media', [\App\Http\Controllers\Art\MyGalleryController::class, 'uploadMedia'])->name('my-gallery.media.upload');
+        Route::delete('my-gallery/{myGallery}/media/{mediaId}', [\App\Http\Controllers\Art\MyGalleryController::class, 'deleteMedia'])->name('my-gallery.media.delete');
+    });
+    Route::middleware('permission:my-gallery.delete')->group(function () {
+        Route::delete('my-gallery/{myGallery}', [\App\Http\Controllers\Art\MyGalleryController::class, 'destroy'])->name('my-gallery.destroy');
+    });
+
     Route::get('user/config', [\App\Http\Controllers\UserConfigController::class, 'show'])->name('user.config.show');
     Route::post('user/config', [\App\Http\Controllers\UserConfigController::class, 'update'])->name('user.config.update');
     Route::post('user/config/batch', [\App\Http\Controllers\UserConfigController::class, 'updateBatch'])->name('user.config.batch');
